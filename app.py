@@ -35,6 +35,7 @@ def download_video(url, download_path):
     ydl_opts = {
         'format': 'best',
         'outtmpl': download_path,
+        'cookiesfrombrowser': ('chrome',),
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
