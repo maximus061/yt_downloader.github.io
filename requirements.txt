@@ -1,3 +1,4 @@
 flask==2.3.3
 werkzeug==2.3.7
 pytube==15.0.0
+yt-dlp
