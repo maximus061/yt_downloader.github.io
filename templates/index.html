@@ -4,15 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTube Video Downloader</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>YouTube Video Downloader</h1>
-        <form method="POST">
-            <input type="text" name="url" placeholder="Enter YouTube URL" required>
-            <button type="submit">Download</button>
-        </form>
-    </div>
+    <h1>YouTube Video Downloader</h1>
+    <form method="POST" action="/">
+        <label for="url">Enter YouTube URL:</label>
+        <input type="text" id="url" name="url" required>
+        <button type="submit">Download</button>
+    </form>
 </body>
 </html>

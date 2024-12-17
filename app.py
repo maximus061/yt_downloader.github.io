@@ -32,10 +32,10 @@ def clean_youtube_url(url):
     return url
 
 def download_video(url, download_path):
+    """Download video using yt_dlp."""
     ydl_opts = {
         'format': 'best',
         'outtmpl': download_path,
-        'cookiesfrombrowser': ('chrome',),
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
