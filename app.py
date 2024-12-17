@@ -1,80 +1,59 @@
-from flask import Flask, render_template, request, send_file
 import os
-import logging
-from urllib.parse import urlparse, parse_qs
+from flask import Flask, request, render_template, send_file
 import yt_dlp
 
 app = Flask(__name__)
-DOWNLOAD_FOLDER = "downloads"
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-if not os.path.exists(DOWNLOAD_FOLDER):
-    os.makedirs(DOWNLOAD_FOLDER)
-
-def clean_youtube_url(url):
-    """Clean YouTube URL to get the basic video URL."""
-    parsed_url = urlparse(url)
-    
-    # Handle youtu.be URLs
-    if 'youtu.be' in parsed_url.netloc:
-        video_id = parsed_url.path.lstrip('/')
-        return f'https://youtube.com/watch?v={video_id}'
-    
-    # Handle youtube.com URLs
-    if 'youtube.com' in parsed_url.netloc:
-        query_params = parse_qs(parsed_url.query)
-        if 'v' in query_params:
-            return f'https://youtube.com/watch?v={query_params["v"][0]}'
-    
+# Function to clean the input URL
+def clean_url(url):
+    if "youtu.be" in url:
+        video_id = url.split("/")[-1].split("?")[0]
+        return f"https://youtube.com/watch?v={video_id}"
     return url
 
-def download_video(url, download_path):
-    """Download video using yt_dlp."""
+# Function to download the video using yt-dlp with cookies
+def download_video(url, download_path, cookies_path):
     ydl_opts = {
-        'format': 'best',
-        'outtmpl': download_path,
+        'outtmpl': download_path,     # Path where the video will be saved
+        'cookies': cookies_path,      # Path to the cookies.txt file
+        'format': 'bestvideo+bestaudio/best',  # Best video and audio quality
+        'merge_output_format': 'mp4', # Ensure output is in MP4 format
     }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+    except Exception as e:
+        raise Exception(f"Error occurred: {e}")
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == 'POST':
-        try:
-            url = request.form['url']
-            logger.info(f"Original URL: {url}")
-            
-            # Clean the URL
-            cleaned_url = clean_youtube_url(url)
-            logger.info(f"Cleaned URL: {cleaned_url}")
-            
-            # Define download path
-            safe_filename = "downloaded_video.mp4"
-            download_path = os.path.join(DOWNLOAD_FOLDER, safe_filename)
-            
-            logger.info(f"Downloading to: {download_path}")
-            download_video(cleaned_url, download_path)
-            
-            if os.path.exists(download_path):
-                logger.info("Download successful, sending file")
-                return send_file(
-                    download_path,
-                    as_attachment=True,
-                    download_name=safe_filename
-                )
-            else:
-                logger.error("File not found after download")
-                return "Download failed - file not found", 500
-                
-        except Exception as e:
-            logger.error(f"Error occurred: {str(e)}", exc_info=True)
-            return f"An error occurred: {str(e)}", 500
-    return render_template('index.html')
+    if request.method == "POST":
+        original_url = request.form.get("url")  # Get the YouTube URL from the form
+        if not original_url:
+            return "Please provide a valid URL.", 400
 
-if __name__ == '__main__':
-    # Use the PORT environment variable (default to 5000)
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+        # Clean and process the URL
+        cleaned_url = clean_url(original_url)
+        print(f"Original URL: {original_url}")
+        print(f"Cleaned URL: {cleaned_url}")
+
+        # Specify paths
+        download_path = os.path.join("downloads", "downloaded_video.mp4")
+        cookies_path = os.path.join("cookies.txt")  # Path to your exported cookies file
+
+        # Ensure the downloads folder exists
+        os.makedirs("downloads", exist_ok=True)
+
+        try:
+            # Download the video
+            download_video(cleaned_url, download_path, cookies_path)
+            print(f"Downloaded to: {download_path}")
+            return send_file(download_path, as_attachment=True)
+        except Exception as e:
+            print(f"ERROR: {e}")
+            return f"An error occurred: {e}", 500
+
+    return render_template("index.html")  # Render the HTML form for input
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=10000)
